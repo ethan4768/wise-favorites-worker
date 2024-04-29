@@ -1,0 +1,18 @@
+{
+  "scripts": {
+    "dev": "wrangler dev src/index.ts --port 8787",
+    "deploy": "wrangler deploy --minify src/index.ts"
+  },
+  "dependencies": {
+    "@langchain/core": "^0.1.57",
+    "@langchain/openai": "^0.0.28",
+    "hono": "^4.2.3"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240405.0",
+    "wrangler": "^3.50.0"
+  },
+  "overrides": {
+    "@langchain/core": "0.1.57"
+  }
+}

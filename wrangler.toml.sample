@@ -1,0 +1,43 @@
+name = "wise-favorites"
+compatibility_date = "2023-12-01"
+
+#----------------------------------------
+# lines below are what you should modify
+#----------------------------------------
+
+[vars]
+
+# API AUTH
+BEARER_TOKENS = ["token_1", "token_2"]
+
+# preset tags, chatgpt will choose tags from this list 
+TAGS = [
+  "opensource",
+  "awesome",
+  "buildinpublic",
+  "mactips",
+  "iOStips",
+  "dev",
+  "startup",
+  "tool",
+  "AI",
+  "chatgpt",
+  "LLM",
+  "RAG",
+  "cloudflare",
+]
+
+# LinkPreview ACCESS KEY
+[vars.LINKPREVEW]
+API_KEY = "changethis"
+
+# OPENAI 
+[vars.OPENAI]
+API_KEY = "changethis"
+BASE_PATH = "https://api.openai.com/v1"
+MODEL = "gpt-4-0125-preview"
+
+# send message to telegram, need bot token & channel_id
+[vars.TELEGRAM]
+BOT_TOKEN = "changethis"
+CHANNEL_ID = "changethis"
