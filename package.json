@@ -6,11 +6,12 @@
   "dependencies": {
     "@langchain/core": "^0.1.57",
     "@langchain/openai": "^0.0.28",
-    "hono": "^4.2.3"
+    "hono": "^4.4.7",
+    "nanoid": "^5.0.7"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20240405.0",
-    "wrangler": "^3.50.0"
+    "@cloudflare/workers-types": "^4.20240620.0",
+    "wrangler": "^3.61.0"
   },
   "overrides": {
     "@langchain/core": "0.1.57"

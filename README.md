@@ -19,7 +19,16 @@
 
 ## 使用
 
-clone 此项目，将`wrangler.toml.sample`复制为`wrangler.toml`，然后修改配置，之后执行`pnpm run deploy`部署到 cloudflare workers 中，部署完成后留意给出的 wokers 地址。
+1. clone 此项目，将`wrangler.toml.sample`复制为`wrangler.toml`，然后修改配置
+2. 创建`d1`数据库`wise-favorites`，然后创建表，参考 [Get started · Cloudflare D1 docs](https://developers.cloudflare.com/d1/get-started/)
+
+   ```bash
+   npx wrangler login
+   npx wrangler d1 create 'wise-favorites'
+   npx wrangler d1 execute wise-favorites --remote --file=./schema.sql 
+   ```   
+
+3. 执行`pnpm run deploy`部署到 cloudflare workers 中，部署完成后留意给出的 workers 地址。
 
 提供最基本的 API 方式，在此基础上根据场景有很多不同玩法。
 
@@ -53,7 +62,8 @@ $ curl --request POST \
       "dev"
     ],
     "shared": {
-      "telegram": true
+      "telegram": true,
+      "d1": true
     }
   }
 }

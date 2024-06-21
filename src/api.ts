@@ -1,53 +1,26 @@
-import { CommaSeparatedListOutputParser } from "@langchain/core/output_parsers";
-import { PromptTemplate } from "@langchain/core/prompts";
-import { RunnableSequence } from "@langchain/core/runnables";
-import { ChatOpenAI } from "@langchain/openai";
-import { Hono } from 'hono';
+import {CommaSeparatedListOutputParser} from "@langchain/core/output_parsers";
+import {PromptTemplate} from "@langchain/core/prompts";
+import {RunnableSequence} from "@langchain/core/runnables";
+import {ChatOpenAI} from "@langchain/openai";
+import {Context, Hono} from 'hono';
+import {Bindings} from './bindings'
+import {randomId} from "./lib/id";
+import {FavoriteResult} from "./model";
 
-const app = new Hono()
+const api = new Hono<{ Bindings: Bindings }>()
 
-class FavoriteResult {
-  title: string;
-  description: string;
-  image: string;
-  url: string;
-  tags: string[] = [];
-  shared: {
-    telegram: boolean;
-  };
-  constructor(url: string) {
-    this.url = url;
-  }
-
-  addPreviewResult(previewResult: JSON) {
-    this.title = previewResult["title"]
-    this.description = previewResult["description"]
-    this.image = previewResult["image"]
-    this.url = previewResult["url"]
-  }
-
-  addTags(tags: string[]) {
-    this.tags = [...this.tags, ...tags]
-  }
-
-  toTelegramMessage(): string {
-    const hashTags = this.tags.map(tag => `#${tag.replace(/ /g, '-')}`).join(' ');
-    return `${hashTags}\n\nURL:\n${this.url}\n\nDescription:\n${this.description}\n`
-  }
-}
-
-app.post('/favorite', async (c) => {
+api.post('/favorite', async (c) => {
   const requestJson = await c.req.json()
   const url = requestJson["url"]
   return await favorite(c, url)
 })
 
-export const favorite = async (c, url) => {
+export async function favorite(c: Context<{ Bindings: Bindings }>, url: string) {
   if (!url) {
-    return c.json({ code: 400, msg: "url param required" }, 400)
+    return c.json({code: 400, msg: "url param required"}, 400)
   }
 
-  const result = new FavoriteResult(url = url)
+  const result = new FavoriteResult(url)
 
   const previewResult = await linkPreview(c.env.LINKPREVEW, url)
   if (!previewResult || !previewResult["title"]) {
@@ -65,20 +38,25 @@ export const favorite = async (c, url) => {
   }
 
   const telegramResult = await postToTelegram(c.env.TELEGRAM, result.toTelegramMessage())
-  result.shared = { "telegram": telegramResult }
+
+  const d1Result = await saveToDB(c.env.DB, result);
+
+  result.shared = {telegram: telegramResult, d1: d1Result}
+
   return c.json({
     "code": 0,
     "msg": "succeeded",
     "data": result
   })
+
 }
 
-export const linkPreview = async (linkPreviewConfig, url: string): Promise<JSON> => {
+export async function linkPreview(linkPreviewConfig: Record<string, string>, url: string): Promise<JSON> {
   const apiKey = linkPreviewConfig["API_KEY"]
   try {
     const linkPreviewUrl = `https://api.linkpreview.net/?q=${encodeURIComponent(url)}`
     const response = await fetch(linkPreviewUrl, {
-      headers: { 'X-Linkpreview-Api-Key': apiKey }
+      headers: {'X-Linkpreview-Api-Key': apiKey}
     });
     return response.json()
   } catch (error) {
@@ -87,17 +65,17 @@ export const linkPreview = async (linkPreviewConfig, url: string): Promise<JSON>
   }
 }
 
-export const aiTags = async (openAIConfig, presetTags, linkPreviewFormat) => {
+export async function aiTags(openAIConfig: Record<string, string>, presetTags: string[], linkPreviewFormat: string): Promise<string[]> {
   const model = new ChatOpenAI(
-    { apiKey: openAIConfig["API_KEY"], model: openAIConfig["MODEL"] },
-    { baseURL: openAIConfig["BASE_PATH"] }
+    {apiKey: openAIConfig["API_KEY"], model: openAIConfig["MODEL"]},
+    {baseURL: openAIConfig["BASE_PATH"]}
   );
   try {
     const parser = new CommaSeparatedListOutputParser();
     const prompt = new PromptTemplate({
       template: "What tags would you suggest me to add to this post? Select 2-5 items with the highest relevance from the list: {preset_tags} \n{format_instructions}\n{post}\n",
       inputVariables: ["preset_tags", "post"],
-      partialVariables: { "format_instructions": parser.getFormatInstructions() },
+      partialVariables: {"format_instructions": parser.getFormatInstructions()},
     });
 
     const chain = RunnableSequence.from([
@@ -107,15 +85,14 @@ export const aiTags = async (openAIConfig, presetTags, linkPreviewFormat) => {
     ]);
 
     console.log(parser.getFormatInstructions())
-    const response = await chain.invoke({ "preset_tags": presetTags, "post": linkPreviewFormat });
-    return response;
+    return await chain.invoke({"preset_tags": presetTags, "post": linkPreviewFormat});
   } catch (error) {
     console.error(error)
     return null;
   }
 }
 
-export const postToTelegram = async (telegramConfig, message) => {
+export async function postToTelegram(telegramConfig: Record<string, string>, message: string): Promise<boolean> {
   const botToken = telegramConfig.BOT_TOKEN
   const channelId = telegramConfig.CHANNEL_ID
 
@@ -143,4 +120,22 @@ export const postToTelegram = async (telegramConfig, message) => {
   }
 }
 
-export default app
+export async function saveToDB(db: D1Database, result: FavoriteResult): Promise<boolean> {
+  const favoriteId = randomId()
+  const favoriteSql = 'INSERT INTO favorite ("id", "url", "title", "description", "image") VALUES (?, ?, ?, ?, ?)'
+  const favoriteTagSql = 'INSERT INTO "favorite_tags" ("favorite_id", "tag") VALUES (?, ?)'
+  const favoriteTagBinds = result.tags.map(tag => [favoriteId, tag])
+  try {
+    let favoriteStmt = db.prepare(favoriteSql).bind(favoriteId, result.url, result.title, result.description, result.image)
+    const favoriteTagStmt = db.prepare(favoriteTagSql)
+    const favoriteTagStatements = favoriteTagBinds.map(bind => favoriteTagStmt.bind(...bind))
+    const results = await db.batch([favoriteStmt, ...favoriteTagStatements])
+
+    return results.every(r => r.success);
+  } catch (e) {
+    console.error(e)
+    return false
+  }
+}
+
+export default api

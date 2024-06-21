@@ -45,7 +45,8 @@ app.onError((err, c) => {
 
 // Default Page
 app.get('/', (c) => {
-  return c.html(html`<h1>Wise Favorite</h1>`)
+  // return c.html(html`<h1>Wise Favorite</h1>`)
+  return c.render(html`<h1>Wise Favorite2</h1>`)
 })
 
 // API 
