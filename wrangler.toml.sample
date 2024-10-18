@@ -5,11 +5,6 @@ compatibility_date = "2023-12-01"
 # lines below are what you should modify
 #----------------------------------------
 
-[[d1_databases]]
-binding = "DB" # i.e. available in your Worker on env.DB
-database_name = "wise-favorites"
-database_id = "changethis"
-
 [vars]
 
 # API AUTH
@@ -46,3 +41,9 @@ MODEL = "gpt-4-0125-preview"
 [vars.TELEGRAM]
 BOT_TOKEN = "changethis"
 CHANNEL_ID = "changethis"
+
+# send to github
+[vars.GITHUB]
+ACCESS_TOKEN = "changethis"
+OWNER = "changethis"
+REPO = "changethis"
