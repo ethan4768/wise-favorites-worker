@@ -25,10 +25,10 @@ export class Favorite {
   };
   timestamp: Date
 
-  constructor(url: string, title: string = "", category: string = "post") {
+  constructor(url: string, title: string = "", category: string) {
     this.url = url;
     this.title = title;
-    this.category = category;
+    this.category = category || "post";
     this.timestamp = new Date()
     this.shared = { telegram: false, github: false }
   }

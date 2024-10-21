@@ -4,7 +4,6 @@ import { Buffer } from 'node:buffer';
 import { Favorite } from "../model";
 
 export async function sendToGithub(githubConfig: Record<string, string>, favorite: Favorite): Promise<boolean> {
-
   const accessToken = githubConfig["ACCESS_TOKEN"]
   const owner = githubConfig["OWNER"]
   const repo = githubConfig["REPO"]
@@ -106,7 +105,8 @@ function getCommitMessage(favorite: Favorite) {
     description: favorite.description,
     timestamp: formatISO(dateWithTimeZone)
   }
-  return `new ${favorite.category}: ${favorite.title}\n\n${JSON.stringify(commitBody)}`
+  const skipActions = favorite.category == "post" ? '' : '[skip actions]'  // skip actions
+  return `${skipActions}[API]${favorite.category}: ${favorite.title}\n\n${JSON.stringify(commitBody)}`
 }
 
 function toFavoriteGithubFormat(owner: string, repo: string, favorite: Favorite) {
