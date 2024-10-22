@@ -14,41 +14,43 @@ api.post('/favorite', async (c) => {
 })
 
 async function post(c: Context<{ Bindings: Bindings }>, params: RequestParam) {
-  const { url, title, category, options } = params
+  const { url, title, description, category, timestamp, options } = params
 
   if (!url) {
     return c.json({ code: 400, msg: "url param required" }, 400)
   }
 
-  const result = new Favorite(url, title, category)
+  const favorite = new Favorite(url, title, description, category, timestamp)
 
-  const previewResult = await linkPreview(c.env.LINKPREVEW, url)
-  if (!previewResult || !previewResult["title"]) {
-    return c.json({
-      "code": 50001,
-      "msg": "preview failed.",
-      "data": JSON.stringify(result)
-    })
+  if (!title || !description) {
+    const previewResult = await linkPreview(c.env.LINKPREVEW, url)
+    if ((!previewResult || !previewResult["title"]) && (!title && !description)) {
+      return c.json({
+        "code": 50001,
+        "msg": "preview failed.",
+        "data": JSON.stringify(favorite)
+      })
+    }
+    favorite.addPreviewResult(previewResult)
   }
-  result.addPreviewResult(previewResult)
-
-  const llmResult = await getLLMResult(c.env.OPENAI, c.env.TAGS, result)
+  
+  const llmResult = await getLLMResult(c.env.OPENAI, c.env.TAGS, favorite)
   if (llmResult) {
     const overrideTitle = shouldOverrideTitle(url, c.env.OVERRIDE_TITLE_DOMAINS)
-    result.addLLMResult(llmResult, overrideTitle)
+    favorite.addLLMResult(llmResult, overrideTitle)
   }
 
   if (options?.share?.telegram ?? true) {
-    result.shared.telegram = await postToTelegram(c.env.TELEGRAM, result)
+    favorite.shared.telegram = await postToTelegram(c.env.TELEGRAM, favorite)
   }
   if (options?.share?.github ?? true) {
-    result.shared.github = await sendToGithub(c.env.GITHUB, result)
+    favorite.shared.github = await sendToGithub(c.env.GITHUB, favorite)
   }
 
   return c.json({
     "code": 0,
     "msg": "succeeded",
-    "data": result
+    "data": favorite
   })
 }
 

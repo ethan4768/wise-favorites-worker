@@ -40,7 +40,7 @@ async function getContentOrCreate({ accessToken, owner, repo, filePath }) {
   // create if not exists
   if (response.status === 404) {
     console.log(`[rest-api] ${filePath} does not exist. Create new one`);
-    const writeResult = await writeContent({ accessToken, owner, repo, filePath, previousSha: undefined, message: `CreatePath: ${filePath}`, content: "" });
+    const writeResult = await writeContent({ accessToken, owner, repo, filePath, previousSha: undefined, message: `[skip actions]CreatePath: ${filePath}`, content: "" });
     if (!writeResult.ok) {
       throw new Error("create-contents-failed");
     }
