@@ -1,37 +1,56 @@
 import { TZDate } from "@date-fns/tz";
 import { format, formatISO } from "date-fns";
-import { Buffer } from 'node:buffer';
+import { Buffer } from "node:buffer";
 import { Favorite } from "../model";
+import yaml from "js-yaml";
 
-export async function sendToGithub(githubConfig: Record<string, string>, favorite: Favorite): Promise<boolean> {
-  const accessToken = githubConfig["ACCESS_TOKEN"]
-  const owner = githubConfig["OWNER"]
-  const repo = githubConfig["REPO"]
+export async function sendToGithub(
+  githubConfig: Record<string, string>,
+  favorite: Favorite,
+): Promise<boolean> {
+  const accessToken = githubConfig["ACCESS_TOKEN"];
+  const owner = githubConfig["OWNER"];
+  const repo = githubConfig["REPO"];
 
   if (!accessToken || !owner || !repo) {
-    return false
+    return false;
   }
 
   try {
-    const filePath = getFilepath(favorite)
-    const response = await getContentOrCreate({ accessToken, owner, repo, filePath: filePath });
-    const data = await response.json()
-    const content = Buffer.from(data.content ?? "", 'base64').toString();
+    const filePath = getFilepath(favorite);
+    const response = await getContentOrCreate({
+      accessToken,
+      owner,
+      repo,
+      filePath: filePath,
+    });
+    const data = await response.json();
+    const content = Buffer.from(data.content ?? "", "base64").toString();
 
-    const message = getCommitMessage(favorite)
-    const newContent = toFavoriteGithubFormat(owner, repo, favorite)
-    const updatedContent = Buffer.from(`${newContent}\n${content}`).toString('base64');
+    const message = getCommitMessage(favorite);
+    const newContent = generateFileContent(favorite);
+    const updatedContent = Buffer.from(`${newContent}\n${content}`).toString(
+      "base64",
+    );
 
-    const writeResult = await writeContent({ accessToken, owner, repo, filePath, previousSha: data.sha, message: message, content: updatedContent })
+    const writeResult = await writeContent({
+      accessToken,
+      owner,
+      repo,
+      filePath,
+      previousSha: data.sha,
+      message: message,
+      content: updatedContent,
+    });
     if (writeResult.ok) {
-      return true
+      return true;
     } else {
-      console.error(writeResult)
+      console.error(writeResult);
     }
   } catch (error) {
-    console.error(error)
+    console.error(error);
   }
-  return false
+  return false;
 }
 
 async function getContentOrCreate({ accessToken, owner, repo, filePath }) {
@@ -39,8 +58,16 @@ async function getContentOrCreate({ accessToken, owner, repo, filePath }) {
 
   // create if not exists
   if (response.status === 404) {
-    console.log(`[rest-api] ${filePath} does not exist. Create new one`);
-    const writeResult = await writeContent({ accessToken, owner, repo, filePath, previousSha: undefined, message: `[skip actions]CreatePath: ${filePath}`, content: "" });
+    console.log(`[rest-api] ${filePath} does not exist, create it`);
+    const writeResult = await writeContent({
+      accessToken,
+      owner,
+      repo,
+      filePath,
+      previousSha: undefined,
+      message: `[skip actions]create file: ${filePath}`,
+      content: "",
+    });
     if (!writeResult.ok) {
       throw new Error("create-contents-failed");
     }
@@ -50,22 +77,30 @@ async function getContentOrCreate({ accessToken, owner, repo, filePath }) {
   return getContent({ accessToken, owner, repo, filePath });
 }
 
-async function writeContent({ accessToken, owner, repo, filePath, previousSha, message, content }) {
+async function writeContent({
+                              accessToken,
+                              owner,
+                              repo,
+                              filePath,
+                              previousSha,
+                              message,
+                              content,
+                            }) {
   const url = `https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`;
 
   return fetch(url, {
-    method: 'PUT',
+    method: "PUT",
     headers: {
-      'Authorization': `Bearer ${accessToken}`,
-      'X-GitHub-Api-Version': '2022-11-28',
-      'Accept': 'application/vnd.github+json',
-      'User-Agent': 'wise-favorites-worker',
+      Authorization: `Bearer ${accessToken}`,
+      "X-GitHub-Api-Version": "2022-11-28",
+      Accept: "application/vnd.github+json",
+      "User-Agent": "wise-favorites-worker",
     },
     body: JSON.stringify({
       message: message,
       sha: previousSha,
-      content: content
-    })
+      content: content,
+    }),
   });
 }
 
@@ -74,55 +109,60 @@ async function getContent({ accessToken, owner, repo, filePath }) {
 
   return fetch(url, {
     headers: {
-      'Authorization': `Bearer ${accessToken}`,
-      'X-GitHub-Api-Version': '2022-11-28',
-      'Accept': 'application/vnd.github+json',
-      'User-Agent': 'wise-favorites-worker',
-    }
+      Authorization: `Bearer ${accessToken}`,
+      "X-GitHub-Api-Version": "2022-11-28",
+      Accept: "application/vnd.github+json",
+      "User-Agent": "wise-favorites-worker",
+    },
   });
 }
 
 function getFilepath(favorite: Favorite) {
-  // posts 每月一个单独目录
-  // tools 只有一个
-  switch (favorite.category) {
-    case "post":
-      const currentMonth = format(favorite.timestamp, 'yyyy-MM');
-      return `posts/${currentMonth}/README.md`
-    case "tool":
-      return 'tools/README.md'
-    default:
-      return ''
-  }
+  const currentMonth = format(favorite.timestamp, "yyyy-MM");
+  return `content/bookmarks/${currentMonth}/${favorite.slug}.md`;
 }
 
 function getCommitMessage(favorite: Favorite) {
-  const dateWithTimeZone = new TZDate(favorite.timestamp, "Asia/Shanghai");
-  const commitBody = {
-    title: favorite.title,
-    url: favorite.url,
-    tags: favorite.tags,
-    description: favorite.description,
-    timestamp: formatISO(dateWithTimeZone)
-  }
-  const skipActions = favorite.category == "post" ? '' : '[skip actions]'  // skip actions
-  return `${skipActions}[API]${favorite.category}: ${favorite.title}\n\n${JSON.stringify(commitBody)}`
+  const body = getJSON(favorite);
+  const arsp = favorite.arsp ?? false;
+  const actionFlag = arsp ? "[ARSP]" : "[skip actions]";
+  return `[API][bookmark]${actionFlag} ${favorite.title}\n\n${JSON.stringify(body)}`;
 }
 
-function toFavoriteGithubFormat(owner: string, repo: string, favorite: Favorite) {
-  const dateStr = format(favorite.timestamp, 'yyyy-MM-dd');
-  const hashTags = favorite.tags
-    .map(tag => {
-      const tagSearch = encodeURIComponent(`repo:${owner}/${repo} #${tag}`)
-      return `[#${tag}](https://github.com/search?q=${tagSearch}&type=code)`
-    })
-    .join(' ');
+function generateFileContent(favorite: Favorite) {
+  const data = getJSON(favorite);
+  const updatedData = {
+    ...data,
+    "pubDatetime": data.timestamp,
+    "ogImage": data.image,
+  };
+  delete updatedData.url;
+  delete updatedData.timestamp;
+  delete updatedData.image;
+
+  const metadata = favorite.arsp
+    ? `[原文链接](${favorite.url}) | [原文内容](../raw/${favorite.slug}) | [AI 总结](../summary/${favorite.slug})`
+    : `[原文链接](${favorite.url})`;
+
+  return `---\n${yaml.dump(updatedData, { lineWidth: -1 })}\n---
+
+${metadata}
+
+---
+
+${favorite.description}
+`;
+}
+
+function getJSON(favorite: Favorite) {
   const dateWithTimeZone = new TZDate(favorite.timestamp, "Asia/Shanghai");
-  return `- (${dateStr}) [${favorite.title}](${favorite.url}) 
-  * title: ${favorite.title}
-  * url: ${favorite.url}
-  * tags: ${hashTags}
-  * description: ${favorite.description}
-  * timestamp: ${formatISO(dateWithTimeZone)}
-`
+  return {
+    title: favorite.title,
+    url: favorite.url,
+    slug: favorite.slug,
+    description: favorite.description,
+    tags: favorite.tags,
+    image: favorite.image,
+    timestamp: formatISO(dateWithTimeZone),
+  };
 }

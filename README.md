@@ -1,4 +1,3 @@
-
 # Wise Favorites Worker
 
 一个提供网络收藏、AI 标签分类、跨平台分享的方案，部署在 Cloudflare workers 上。
@@ -47,12 +46,7 @@ $ curl --request POST \
     "description": "This document discusses principles and techniques for writing prompts to guide models in generating useful output, emphasizing the importance of task descriptions and multiple prompt formulations. It also provides examples of prompts for tasks like summarization and sentiment classification.",
     "image": "https://files.readme.io/06afae0-cohere_meta_image.jpg",
     "url": "https://docs.cohere.com/docs/prompt-engineering",
-    "tags": [
-      "AI",
-      "chatgpt",
-      "LLM",
-      "dev"
-    ],
+    "tags": ["AI", "chatgpt", "LLM", "dev"],
     "shared": {
       "telegram": true,
       "d1": true
@@ -70,7 +64,7 @@ $ curl --request POST \
 在 iPhone 上使用时，可以借助快捷指令实现。
 
 1. 添加此快捷指令 [Share to Telegram](https://www.icloud.com/shortcuts/615b96ec27ed483f8b53bfeb117927a1)
-2. 将第二个操作中地址改为你的地址，例如：https://wise-favorites.xxx.wokers.dev/api/favorite 
+2. 将第二个操作中地址改为你的地址，例如：https://wise-favorites.xxx.wokers.dev/api/favorite
 3. 将 Header 中 Authorization 值改为`Bearer ${your token}`，注意空格。
 4. 点击完成，在 Safari 或 Twitter 分享中下拉可以找到`Share to Telegram`项。第一次使用，会出现发送请求的授权，点击始终允许即可。
 
@@ -82,7 +76,7 @@ $ curl --request POST \
 
 通过 `wrangler.toml` 进行配置
 
-### AUTH 
+### AUTH
 
 API 调用时会进行认证，**注意 token 不要泄露**。
 
@@ -117,7 +111,7 @@ MODEL = "gpt-4-0125-preview"
 配置项在`[vars.TELEGRAM]`下，不配置`BOT_TOKEN`或`CHANNEL_ID`时，不进行发送，只返回结果。
 
 - BOT_TOKEN: 通过 BotFather 创建 Bot，BotFather 会提供一个 token，API 请求需要使用该 token。
-- CHANNEL_ID: 
+- CHANNEL_ID:
   - 如果 channel 是公开的，那么它的 id 就是它的用户名（例如 @mychannel）；
   - 如果 channel 是私有的，那么需要使用一些工具或者 API 来获取它的 id。
 
@@ -125,13 +119,14 @@ MODEL = "gpt-4-0125-preview"
 
 首先，获取此链接的一些 meta 信息，然后将这些信息喂给 chatgpt，由 chatgpt 找出与预设 tag 相关度最高的 2-5 个 tag 并返回。最后，将内容发送到 telegram 指定频道中。
 
-预设的提示词为 
+预设的提示词为
 
 ```
 What tags would you suggest me to add to this post? Select 2-5 items with the highest relevance from the list: {preset_tags} \n{format_instructions}\n{post}
 ```
 
 其中
+
 - `preset_tags`，预设的 tag 列表，配置在`wrangler.toml`中；
 - `format_instructions`，由 langchain parser 进行填充，这里使用的是`CommaSeparatedListOutputParser`，返回一个格式化的 tag 列表
 - `post`，通过 url 获取到的网页信息
@@ -140,7 +135,7 @@ What tags would you suggest me to add to this post? Select 2-5 items with the hi
 
 ## 使用的技术&服务
 
-### 托管 
+### 托管
 
 - Cloudflare worker
 
@@ -151,5 +146,4 @@ What tags would you suggest me to add to this post? Select 2-5 items with the hi
 
 ### 三方服务
 
-- [LinkPreview](https://www.linkpreview.net/) 抓取页面内容 
-
+- [LinkPreview](https://www.linkpreview.net/) 抓取页面内容

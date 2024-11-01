@@ -1,6 +1,9 @@
 import { Favorite } from "../model";
 
-export async function postToTelegram(telegramConfig: Record<string, string>, result: Favorite): Promise<boolean> {
+export async function postToTelegram(
+  telegramConfig: Record<string, string>,
+  result: Favorite
+): Promise<boolean> {
   const botToken = telegramConfig.BOT_TOKEN;
   const channelId = telegramConfig.CHANNEL_ID;
 
@@ -16,8 +19,8 @@ export async function postToTelegram(telegramConfig: Record<string, string>, res
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        "chat_id": channelId,
-        "text": getTelegramMessage(result),
+        chat_id: channelId,
+        text: toTelegramFormat(result),
         // "parse_mode": "Markdown"
       }),
     });
@@ -28,7 +31,12 @@ export async function postToTelegram(telegramConfig: Record<string, string>, res
   }
 }
 
-function getTelegramMessage(favorite: Favorite): string {
-  const hashTags = favorite.tags.map(tag => `#${tag.replace(/ /g, '-')}`).join(' ');
-  return `${hashTags}\n\nURL:\n${favorite.url}\n\nDescription:\n${favorite.description}\n`
+function toTelegramFormat(favorite: Favorite): string {
+  const hashTags = favorite.tags
+    .map(tag => `#${tag.replace(/ /g, "-")}`)
+    .join(" ");
+  const fixupXUrl = favorite.url
+    .replace("x.com", "fixupx.com")
+    .replace("twitter.com", "fxtwitter.com");
+  return `${hashTags}\n\nURL:\n${fixupXUrl}\n\nTitle:\n${favorite.title}\n\nDescription:\n${favorite.description}\n`;
 }
