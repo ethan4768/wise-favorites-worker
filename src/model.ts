@@ -34,7 +34,7 @@ export class Favorite {
     title: string = "",
     description = "",
     timestamp: string,
-    options: Record<string, any>
+    options: Record<string, any>,
   ) {
     this.url = url;
     this.title = title;
@@ -57,7 +57,9 @@ export class Favorite {
       this.description = previewResult["description"];
     }
     this.image = previewResult["image"];
-    this.url = previewResult["url"];
+    if (previewResult["url"]) {  // 有些页面会被 forbidden
+      this.url = previewResult["url"];
+    }
   }
 
   addLLMResult(llmResult: LLMResult) {

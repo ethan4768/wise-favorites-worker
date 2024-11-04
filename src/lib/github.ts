@@ -2,7 +2,6 @@ import { TZDate } from "@date-fns/tz";
 import { format, formatISO } from "date-fns";
 import { Buffer } from "node:buffer";
 import { Favorite } from "../model";
-import yaml from "js-yaml";
 
 export async function sendToGithub(
   githubConfig: Record<string, string>,
@@ -130,21 +129,18 @@ function getCommitMessage(favorite: Favorite) {
 }
 
 function generateFileContent(favorite: Favorite) {
-  const data = getJSON(favorite);
-  const updatedData = {
-    ...data,
-    "pubDatetime": data.timestamp,
-    "ogImage": data.image,
-  };
-  delete updatedData.url;
-  delete updatedData.timestamp;
-  delete updatedData.image;
-
   const metadata = favorite.arsp
     ? `[原文链接](${favorite.url}) | [原文内容](../raw/${favorite.slug}) | [AI 总结](../summary/${favorite.slug})`
     : `[原文链接](${favorite.url})`;
 
-  return `---\n${yaml.dump(updatedData, { lineWidth: -1 })}\n---
+  return `---
+title: ${favorite.title}
+slug: ${favorite.slug}
+description: ${favorite.description}
+tags: \n${favorite.tags.map(tag => `  - ${tag}`).join('\n')}
+pubDatetime: ${formatISO(new TZDate(favorite.timestamp, "Asia/Shanghai"))}
+ogImage: ${favorite.image}
+---
 
 ${metadata}
 
