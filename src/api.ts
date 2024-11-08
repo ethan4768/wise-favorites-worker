@@ -25,7 +25,7 @@ async function post(c: Context<{ Bindings: Bindings }>, params: RequestParam) {
 
   if (!title || !description) {
     const previewResult = await linkPreview(c.env.LINKPREVEW, url);
-    console.log(previewResult)
+    console.log(previewResult);
     if ((!previewResult || !previewResult["title"]) && !title && !description) {
       return c.json({
         code: 50001,
@@ -57,22 +57,6 @@ async function post(c: Context<{ Bindings: Bindings }>, params: RequestParam) {
     msg: "succeeded",
     data: favorite,
   });
-}
-
-function shouldOverrideTitle(
-  url: string,
-  overrideTitleDomains: string[]
-): boolean {
-  try {
-    const parsedUrl = new URL(url);
-    return overrideTitleDomains.some(
-      domain =>
-        parsedUrl.hostname === domain ||
-        parsedUrl.hostname.endsWith("." + domain)
-    );
-  } catch (error) {
-    return false;
-  }
 }
 
 export default api;

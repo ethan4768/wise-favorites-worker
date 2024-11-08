@@ -64,7 +64,7 @@ async function getContentOrCreate({ accessToken, owner, repo, filePath }) {
       repo,
       filePath,
       previousSha: undefined,
-      message: `[skip actions]create file: ${filePath}`,
+      message: `[skip ci]create file: ${filePath}`,
       content: "",
     });
     if (!writeResult.ok) {
@@ -72,7 +72,7 @@ async function getContentOrCreate({ accessToken, owner, repo, filePath }) {
     }
   }
 
-  // 重新获取一次，因为要获取 sha
+  // 重新获取一次，因为更新需要 sha
   return getContent({ accessToken, owner, repo, filePath });
 }
 
@@ -118,7 +118,7 @@ async function getContent({ accessToken, owner, repo, filePath }) {
 
 function getFilepath(favorite: Favorite) {
   const currentMonth = format(favorite.timestamp, "yyyy-MM");
-  return `content/bookmarks/${currentMonth}/${favorite.slug}.md`;
+  return `src/content/bookmarks/${currentMonth}/${favorite.slug}.md`;
 }
 
 function getCommitMessage(favorite: Favorite) {
