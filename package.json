@@ -1,4 +1,7 @@
 {
+  "name": "wise-favorites-worker",
+  "version": "1.0.3",
+  "private": false,
   "scripts": {
     "dev": "wrangler dev src/index.ts --port 8787",
     "deploy": "wrangler deploy --minify src/index.ts",

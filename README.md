@@ -2,37 +2,68 @@
 
 一个提供网络收藏、AI 标签分类、跨平台分享的方案，部署在 Cloudflare workers 上。
 
-**功能**
+## 功能
 
-1. 方便快捷收藏自己喜欢的网络内容
-2. 使用 AI 给收藏打标签
-3. 快速分享到 Telegram
+1. 通过 API 方便快捷收藏自己喜欢的网络内容
+2. 根据 URL 获取网页基本信息，title, description, ogImage 等
+3. 借助大模型给收藏打标签
+4. 分享到 telegram
+    - twitter 会实现 instant view 效果
+5. 同步到 github
 
-**TODO**
+同步到 github 后，可参考 [https://github.com/ethan4768/blog](https://github.com/ethan4768/blog) 实现以下功能
 
-1. 自动下载网页内容
-   1. 网页快照，离线阅读
-   2. 导出为 markdown，pdf 等格式
-   3. AI 总结，提取关键内容
-2. 与收藏的内容进行对话
+1. [x] 自动下载网页内容，使用
+2. [x] AI 总结，提取关键内容
+3. [x] 自动发布到博客
+4. [ ] 与收藏的内容进行对话
+
+## 部署
+
+1. clone 此项目，将`wrangler.toml.sample`复制为`wrangler.toml`，然后修改配置
+2. 执行`pnpm run deploy`部署到 cloudflare workers 中，部署完成后留意给出的 workers 地址
+3. 根据需要配置自定义域名
+
+### Telegram
+
+配置项在`[vars.TELEGRAM]`下，任意一项不配置时，不进行推送。
+
+1. BOT_TOKEN: 通过 BotFather 创建 Bot，BotFather 会提供一个 token，API 请求需要使用该 token。
+2. CHANNEL_ID:
+    - 如果 channel 是公开的，那么它的 id 就是它的用户名（例如 @mychannel）；
+    - 如果 channel 是私有的，那么需要使用一些工具或者 API 来获取它的 id。
+
+### Github
+
+配置项在`[vars.GITHUB]`下，任意一项不配置时，不进行推送。
+
+**权限**
+为安全隔离考虑，尽量创建新的 [personal access token](https://github.com/settings/personal-access-tokens/new)
+
+1. 为了权限最小化，可以指定 repo
+2. repo 权限设置，将 Actions, Contents, Workflows 三项设置为 **Read and write**
 
 ## 使用
 
-1. clone 此项目，将`wrangler.toml.sample`复制为`wrangler.toml`，然后修改配置
-2. 执行`pnpm run deploy`部署到 cloudflare workers 中，部署完成后留意给出的 workers 地址。
-
-提供最基本的 API 方式，在此基础上根据场景有很多不同玩法。
+提供 API，在此基础上根据场景有很多不同玩法
 
 ### API 方式
 
 ```shell
-$ curl --request POST \
-    --url https://${your cloudlfare path}/api/favorite \
-    --header 'Authorization: Bearer ${your token}' \
-    --header 'Content-Type: application/json' \
-    --data '{
-      "url": "https://docs.cohere.com/docs/prompt-engineering"
-    }'
+curl --request POST \
+  --url https://${your cloudlfare path}/api/favorite \
+  --header 'Authorization: Bearer ${your token}' \
+  --header 'Content-Type: application/json' \
+  --data '{
+	"url": "https://docs.cohere.com/docs/prompt-engineering",
+	"options": {
+      "arsp": false,
+      "share": {
+        "telegram": false,
+        "github": false
+      }
+	}
+  }'
 ```
 
 结果示例：
@@ -42,20 +73,29 @@ $ curl --request POST \
   "code": 0,
   "msg": "succeeded",
   "data": {
-    "title": "Prompt Engineering and Premables",
-    "description": "This document discusses principles and techniques for writing prompts to guide models in generating useful output, emphasizing the importance of task descriptions and multiple prompt formulations. It also provides examples of prompts for tasks like summarization and sentiment classification.",
-    "image": "https://files.readme.io/06afae0-cohere_meta_image.jpg",
-    "url": "https://docs.cohere.com/docs/prompt-engineering",
-    "tags": ["AI", "chatgpt", "LLM", "dev"],
+    "url": "https://docs.cohere.com/docs/crafting-effective-prompts",
+    "title": "高效提示词的制作：Cohere 实用指南",
+    "slug": "crafting-effective-prompts",
+    "description": "本页面介绍了多种制作高效提示词的方法，帮助用户在提示工程中获得最佳结果。无论是针对 AI、聊天机器人还是其他自然语言处理模型，掌握这些技巧将显著提升交互的质量和效率。",
+    "arsp": false,
+    "image": "https://fdr-prod-docs-files-public.s3.amazonaws.com/cohere.docs.buildwithfern.com/2024-11-07T21:19:13.731Z/assets/images/f1cc130-cohere_meta_image.jpg",
+    "tags": [
+      "ai",
+      "tool",
+      "writing",
+      "chatgpt",
+      "llm"
+    ],
     "shared": {
-      "telegram": true,
-      "d1": true
-    }
+      "telegram": false,
+      "github": false
+    },
+    "timestamp": "2024-11-08T03:39:13.902Z"
   }
 }
 ```
 
-发送到 telegram 中效果如下
+telegram 中效果：
 
 ![telegram](./doc/images/telegram.png)
 
@@ -72,78 +112,16 @@ $ curl --request POST \
 
 使用 [https://github.com/ethan4768/wise-favorites-extension](https://github.com/ethan4768/wise-favorites-extension)
 
-## 配置
-
-通过 `wrangler.toml` 进行配置
-
-### AUTH
-
-API 调用时会进行认证，**注意 token 不要泄露**。
-
-配置项：`vars.BEARER_TOKENS`
-
-### 预设的 tag 列表
-
-chatgpt 会从此预设列表中选择最相关的 2-5 个返回
-
-配置项：`vars.TAGS`
-
-### 网页信息抓取
-
-使用的是 [LinkPreview](https://www.linkpreview.net/)，此服务提供免费计划，无须信用卡，个人使用足够。
-
-1. 注册登录
-2. 生成 ACCESS KEY
-3. 将 ACCESS KEY 填充到 `vars.LINKPREVEW.API_KEY` 中
-
-### OpenAI
-
-配置项在`[vars.OPENAI]`下，
-
-```
-API_KEY = "changethis"
-BASE_PATH = "https://api.openai.com/v1"
-MODEL = "gpt-4-0125-preview"
-```
-
-### Telegram
-
-配置项在`[vars.TELEGRAM]`下，不配置`BOT_TOKEN`或`CHANNEL_ID`时，不进行发送，只返回结果。
-
-- BOT_TOKEN: 通过 BotFather 创建 Bot，BotFather 会提供一个 token，API 请求需要使用该 token。
-- CHANNEL_ID:
-  - 如果 channel 是公开的，那么它的 id 就是它的用户名（例如 @mychannel）；
-  - 如果 channel 是私有的，那么需要使用一些工具或者 API 来获取它的 id。
-
 ## 实现逻辑
 
-首先，获取此链接的一些 meta 信息，然后将这些信息喂给 chatgpt，由 chatgpt 找出与预设 tag 相关度最高的 2-5 个 tag 并返回。最后，将内容发送到 telegram 指定频道中。
-
-预设的提示词为
-
-```
-What tags would you suggest me to add to this post? Select 2-5 items with the highest relevance from the list: {preset_tags} \n{format_instructions}\n{post}
-```
-
-其中
-
-- `preset_tags`，预设的 tag 列表，配置在`wrangler.toml`中；
-- `format_instructions`，由 langchain parser 进行填充，这里使用的是`CommaSeparatedListOutputParser`，返回一个格式化的 tag 列表
-- `post`，通过 url 获取到的网页信息
+1. 获取此链接的一些 meta 信息
+2. 将这些信息喂给 LLM，由 LLM 返回 tags, slug, improved_title, improved_description
+3. 推送到 Telegram, github 等
 
 根据我的使用情况，每次请求会消耗 200 到 300 个 token。
 
 ## 使用的技术&服务
 
-### 托管
-
-- Cloudflare worker
-
-### 技术栈
-
-- hono：简易的前端框架
-- Langchain：与 OpenAI 交互，并进行结构化输出
-
-### 三方服务
-
-- [LinkPreview](https://www.linkpreview.net/) 抓取页面内容
+- Cloudflare Worker，托管
+- [Hono](https://hono.dev/)：简易的前端框架
+- [LinkPreview](https://www.linkpreview.net/) 抓取页面内容，此服务提供免费计划，无须信用卡，个人使用足够。
