@@ -4,13 +4,15 @@ import { z } from "zod";
 export type RequestParam = {
   url: string;
   title?: string;
-  description: string;
-  timestamp: string;
+  description?: string;
+  content?: string;
+  image?: string;
+  timestamp?: string;
   options?: {
-    arsp: boolean; // Automatically retrieve and summarize posts
-    share: {
-      telegram: boolean;
-      github: boolean;
+    arsp?: boolean; // Automatically retrieve and summarize posts
+    share?: {
+      telegram?: boolean;
+      github?: boolean;
     };
   };
 };
@@ -20,6 +22,7 @@ export class Favorite {
   title: string;
   slug: string;
   description: string;
+  content: string;
   arsp: boolean;
   image: string;
   tags: string[] = [];
@@ -32,13 +35,17 @@ export class Favorite {
   constructor(
     url: string,
     title: string = "",
-    description = "",
+    description: string = "",
+    content: string = "",
+    image: string,
     timestamp: string,
     options: Record<string, any>,
   ) {
     this.url = url;
     this.title = title;
     this.description = description;
+    this.content = content;
+    this.image = image;
     if (timestamp) {
       const formatString = "yyyy-MM-dd HH:mm:ss.SSS";
       this.timestamp = parse(timestamp, formatString, new Date());
@@ -56,7 +63,9 @@ export class Favorite {
     if (!this.description) {
       this.description = previewResult["description"];
     }
-    this.image = previewResult["image"];
+    if (previewResult["image"]) {
+      this.image = previewResult["image"];
+    }
     if (previewResult["url"]) {  // 有些页面会被 forbidden
       this.url = previewResult["url"];
     }
@@ -67,6 +76,9 @@ export class Favorite {
     this.slug = llmResult.slug;
     this.title = llmResult.improved_title;
     this.description = llmResult.improved_description;
+    if (!this.content || this.content === "") {
+      this.content = llmResult.improved_content;
+    }
   }
 }
 
@@ -75,6 +87,7 @@ export const LLMResultSchema = z.object({
   slug: z.string(),
   improved_title: z.string(),
   improved_description: z.string(),
+  improved_content: z.string().nullable(),
 });
 
 export type LLMResult = z.infer<typeof LLMResultSchema>;

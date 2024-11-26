@@ -146,7 +146,7 @@ ${metadata}
 
 ---
 
-${favorite.description}
+${favorite.content}
 `;
 }
 

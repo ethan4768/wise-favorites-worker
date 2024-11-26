@@ -15,13 +15,13 @@ api.post("/favorite", async c => {
 });
 
 async function post(c: Context<{ Bindings: Bindings }>, params: RequestParam) {
-  const { url, title, description, timestamp, options } = params;
+  const { url, title, description, content, image, timestamp, options } = params;
 
   if (!url) {
     return c.json({ code: 400, msg: "url param required" }, 400);
   }
 
-  const favorite = new Favorite(url, title, description, timestamp, options);
+  const favorite = new Favorite(url, title, description, content, image, timestamp, options);
 
   if (!title || !description) {
     const previewResult = await linkPreview(c.env.LINKPREVEW, url);
