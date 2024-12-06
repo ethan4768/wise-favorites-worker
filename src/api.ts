@@ -11,6 +11,7 @@ const api = new Hono<{ Bindings: Bindings }>();
 
 api.post("/favorite", async c => {
   const params: RequestParam = await c.req.json();
+  console.log(params);
   return await post(c, params);
 });
 
@@ -52,11 +53,13 @@ async function post(c: Context<{ Bindings: Bindings }>, params: RequestParam) {
     favorite.shared.github = await sendToGithub(c.env.GITHUB, favorite);
   }
 
-  return c.json({
+  const result = c.json({
     code: 0,
     msg: "succeeded",
     data: favorite,
   });
+  console.log(result);
+  return result;
 }
 
 export default api;
