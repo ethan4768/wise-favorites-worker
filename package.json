@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "wrangler dev src/index.ts --port 8787",
     "deploy": "wrangler deploy --minify src/index.ts",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "prepare": "husky"
   },
   "dependencies": {
     "@date-fns/tz": "^1.1.2",
@@ -17,7 +18,10 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20241004.0",
+    "@commitlint/cli": "^19.6.0",
+    "@commitlint/config-conventional": "^19.6.0",
     "@types/node": "^22.7.5",
+    "husky": "^9.1.7",
     "prettier": "3.3.3",
     "ts-node": "^10.9.2",
     "tsx": "^4.19.1",
