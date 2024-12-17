@@ -37,9 +37,11 @@ async function post(c: Context<{ Bindings: Bindings }>, params: RequestParam) {
     favorite.addPreviewResult(previewResult);
   }
 
-  const llmResult = await getLLMResult(c.env.OPENAI, c.env.TAGS, favorite);
-  if (llmResult) {
-    favorite.addLLMResult(llmResult);
+  if (options?.llm ?? false) {
+    const llmResult = await getLLMResult(c.env.OPENAI, c.env.TAGS, favorite);
+    if (llmResult) {
+      favorite.addLLMResult(llmResult);
+    }
   }
 
   if (!favorite.slug) {

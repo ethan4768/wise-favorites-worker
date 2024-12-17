@@ -14,6 +14,7 @@ export type RequestParam = {
       telegram?: boolean;
       github?: boolean;
     };
+    llm?: boolean;
   };
 };
 

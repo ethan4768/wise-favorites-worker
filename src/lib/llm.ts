@@ -7,6 +7,10 @@ export async function getLLMResult(
   presetTags: string[],
   favorite: Favorite
 ): Promise<LLMResult> {
+  if (!openAIConfig["BASE_PATH"] || !openAIConfig["API_KEY"]) {
+    return null
+  }
+
   const openai = new OpenAI({
     baseURL: openAIConfig["BASE_PATH"],
     apiKey: openAIConfig["API_KEY"],
